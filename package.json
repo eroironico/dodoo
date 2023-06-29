@@ -1,0 +1,32 @@
+{
+  "name": "odoo-js",
+  "version": "0.0.0",
+  "description": "Node.js typesafe client for odoo ERP using xmlrpc api",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "postversion": "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eroironico/odoo-js.git"
+  },
+  "keywords": [
+    "odoo",
+    "odoo xmlrpc",
+    "odoo api"
+  ],
+  "author": "eroironico",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/eroironico/odoo-js/issues"
+  },
+  "homepage": "https://github.com/eroironico/odoo-js#readme",
+  "files": [
+    "dist/**/*"
+  ],
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}
