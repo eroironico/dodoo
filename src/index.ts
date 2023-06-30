@@ -1,8 +1,11 @@
 import { AugmentedModel } from "./lib/augmented-model"
 import EndpointsCollector from "./lib/endpoints-collector"
-import { InternalConfig, OdooConfig, OdooServerVersion } from "./types"
+import Op from "./lib/op"
+import { InternalConfig, Config, ServerVersion } from "./types"
 
 class Odoo extends EndpointsCollector<["common", "object"]> {
+  public static Op = Op
+
   private _db: string
   private _username: string
   private _password: string
@@ -27,7 +30,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
     return !!this._uid
   }
 
-  constructor(config: OdooConfig) {
+  constructor(config: Config) {
     const url =
       typeof config.url === "string" ? new URL(config.url) : config.url
 
@@ -46,7 +49,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
    * This method to can be called to verify if the connection information is correct before trying to authenticate or to get server info
    * @returns Server version
    */
-  public async version(): Promise<OdooServerVersion> {
+  public async version(): Promise<ServerVersion> {
     return this._xmlrpc.common.call("version", [])
   }
 
@@ -77,7 +80,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
    * @param method The `model` method to call
    * @param params The `method` parameters (if any)
    */
-  public async execute_kw<RT = any>(
+  public async executeKw<RT = any>(
     model: string,
     method: string,
     params: Array<any> = []

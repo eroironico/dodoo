@@ -1,3 +1,11 @@
+import Op from "./op"
+import {
+  ModelQueryInput,
+  ModelQueryMatcherValue,
+  ModelQueryTriple,
+  ModelQueryTripleValue,
+  QueryTriple,
+} from "../types"
 import EndpointsCollector from "./endpoints-collector"
 
 export class AugmentedModel extends EndpointsCollector<["object"]> {
@@ -11,9 +19,91 @@ export class AugmentedModel extends EndpointsCollector<["object"]> {
     super(host, port, secure, ["object"])
   }
 
-  // TODO
+  private _parseTriple(
+    field: string,
+    matcher: ModelQueryTripleValue
+  ): QueryTriple {
+    if (
+      typeof matcher === "string" ||
+      typeof matcher === "number" ||
+      typeof matcher === "boolean" ||
+      (typeof matcher === "object" &&
+        (matcher === null || Array.isArray(matcher)))
+    ) {
+      matcher = { EQUALS_TO: matcher }
+    } else {
+      const matcherKey = Object.keys(matcher).shift()
+      if (!matcherKey || !(matcherKey in Op))
+        throw new Error(`Invalid operator for field ${field}`)
+    }
+
+    const [opName, value] = Object.entries(matcher).shift() as [
+      keyof typeof Op,
+      ModelQueryMatcherValue
+    ]
+
+    return [field, Op[opName] as keyof typeof Op, value]
+  }
+
+  // TODO Can be moved in own abtract class (better)
+  public _parseQuery<T extends string>(
+    input: ModelQueryInput<T>
+  ): Array<string | QueryTriple> {
+    const orderedKeys = Object.keys(input).sort((ka, kb) => {
+      if (ka === "NOT") return 1
+      if (ka === "OR") return kb === "NOT" ? -1 : 1
+      if (ka === "AND") return kb === "OR" ? -1 : 1
+      if (kb === "AND") return -1
+
+      return 0
+    })
+    const parsed = []
+
+    for (const key of orderedKeys) {
+      if (!/AND|OR|NOT/.test(key))
+        parsed.push(this._parseTriple(key, input[key as keyof typeof input]!))
+
+      const value = (
+        Array.isArray(input[key as keyof typeof input])
+          ? input[key as keyof typeof input]
+          : [input[key as keyof typeof input]]
+      ) as Array<ModelQueryTriple>
+      const terms = value
+        .map(term => Object.entries(term).shift() || [])
+        .filter(([tk, tv]) => tk !== undefined && tv !== undefined)
+
+      switch (key) {
+        case "AND":
+          if (value.length < 2)
+            throw new Error("AND operator requires at least 2 terms")
+
+          terms.forEach(([tk, tv]) => parsed.push(this._parseTriple(tk, tv)))
+          break
+        case "OR":
+          if (value.length < 2)
+            throw new Error("OR operator requires at least 2 terms")
+
+          terms.forEach(([tk, tv], ti) => {
+            if (ti < value.length - 1) parsed.push("|")
+            parsed.push(this._parseTriple(tk, tv))
+          })
+          break
+        case "NOT":
+          terms.forEach(([tk, tv]) =>
+            parsed.push("!", this._parseTriple(tk, tv))
+          )
+      }
+    }
+
+    return parsed
+  }
+
   // * return array of ids (ALL OF THEM, better to call with pagination)
-  public async search() {
+  /**
+   * Records can be listed and filtered via search()
+   * @param query
+   */
+  public async search(query?: Record<string, any>) {
     // models.execute_kw(db, uid, password, 'res.partner', 'search', [
     //   [
     //     ['is_company', '=', true] // domain
