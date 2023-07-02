@@ -1,4 +1,4 @@
-import { AugmentedModel } from "./lib/augmented-model"
+import Model from "./lib/model"
 import EndpointsCollector from "./lib/endpoints-collector"
 import Op from "./lib/op"
 import { InternalConfig, Config, ServerVersion } from "./types"
@@ -10,7 +10,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
   private _username: string
   private _password: string
   private _uid: number | null = null
-  private _modelsCache: Map<string, AugmentedModel> = new Map()
+  private _modelsCache: Map<string, Model> = new Map()
 
   /**
    * This is the config used internally (watchout as it exposes the password)
@@ -106,7 +106,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
    * @param name Odoo model name
    * @returns A class augmenting `model` base methods
    */
-  public model(name: string): AugmentedModel {
+  public model(name: string): Model {
     if (!this._uid)
       throw new Error(
         "You must authenticate before instantiating a model instance"
@@ -115,13 +115,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
     if (!this._modelsCache.has(name))
       this._modelsCache.set(
         name,
-        new AugmentedModel(
-          this._host,
-          this._port,
-          this._secure,
-          this._uid,
-          name
-        )
+        new Model(this._host, this._port, this._secure, this._uid, name)
       )
 
     return this._modelsCache.get(name)!

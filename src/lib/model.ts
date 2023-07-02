@@ -8,7 +8,7 @@ import {
 } from "../types"
 import EndpointsCollector from "./endpoints-collector"
 
-export class AugmentedModel extends EndpointsCollector<["object"]> {
+export default class Model extends EndpointsCollector<["object"]> {
   constructor(
     host: string,
     port: number,
