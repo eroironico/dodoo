@@ -2,9 +2,11 @@ import Model from "./lib/model"
 import EndpointsCollector from "./lib/endpoints-collector"
 import Op from "./lib/op"
 import { InternalConfig, Config, ServerVersion } from "./types"
+import QueryParser from "./lib/query-parser"
 
 class Odoo extends EndpointsCollector<["common", "object"]> {
   public static Op = Op
+  public static QueryParser = QueryParser
 
   private _db: string
   private _username: string
@@ -100,7 +102,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
   /**
    * Call this method to get an instance of a single odoo model that implements the model base methods
    *
-   * WARNINGs:
+   * WARNINGS:
    * - Since all models share and need the same `uid` you must call `authenticate` before any call to this method
    * - Models are cached so only the first call will return a new instance, other calls will return the same instance
    * @param name Odoo model name
@@ -115,7 +117,15 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
     if (!this._modelsCache.has(name))
       this._modelsCache.set(
         name,
-        new Model(this._host, this._port, this._secure, this._uid, name)
+        new Model(
+          this._host,
+          this._port,
+          this._secure,
+          this._db,
+          this._uid,
+          this._password,
+          name
+        )
       )
 
     return this._modelsCache.get(name)!

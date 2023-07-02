@@ -59,3 +59,5 @@ export interface ModelQueryInput extends ModelBaseQueryInput {
   OR?: Array<ModelQueryTriple>
   NOT?: ModelQueryTriple | Array<ModelQueryTriple>
 }
+
+export type ModelQueryOptions = Partial<{ offset: number; limit: number }>

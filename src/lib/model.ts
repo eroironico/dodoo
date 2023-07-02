@@ -1,133 +1,56 @@
-import Op from "./op"
-import {
-  ModelQueryInput,
-  ModelQueryMatcherValue,
-  ModelQueryTriple,
-  ModelQueryTripleValue,
-  QueryTriple,
-} from "../types"
+import { ModelQueryInput, ModelQueryOptions } from "../types"
 import EndpointsCollector from "./endpoints-collector"
+import QueryParser from "./query-parser"
 
 export default class Model extends EndpointsCollector<["object"]> {
   constructor(
     host: string,
     port: number,
     secure: boolean,
+    private _db: string,
     private _uid: number,
-    private _model: string
+    private _password: string,
+    public name: string
   ) {
     super(host, port, secure, ["object"])
   }
 
-  private _isSimpleMatcherValue(
-    value: ModelQueryTripleValue | ModelQueryTriple | ModelQueryTriple[]
-  ): value is ModelQueryTripleValue {
-    if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
-    )
-      return true
-
-    const containsOp = (v: any) => Object.keys(v).some(k => k in Op)
-
-    return Array.isArray(value) ? !value.some(containsOp) : !containsOp(value)
-  }
-
-  private _parseTriple(
-    field: string,
-    matcher: ModelQueryTripleValue | ModelQueryTriple | ModelQueryTriple[]
-  ): QueryTriple {
-    if (this._isSimpleMatcherValue(matcher)) matcher = { EQUALS_TO: matcher }
-
-    const [opName, value] = Object.entries(matcher).shift() as [
-      keyof typeof Op,
-      ModelQueryMatcherValue
-    ]
-
-    return [field, Op[opName] as keyof typeof Op, value]
-  }
-
-  // TODO Can be moved in own abtract class (better)
-  public _parseQuery(input: ModelQueryInput): Array<string | QueryTriple> {
-    const orderedKeys = Object.keys(input).sort((ka, kb) => {
-      if (ka === "NOT") return 1
-      if (ka === "OR") return kb === "NOT" ? -1 : 1
-      if (ka === "AND") return kb === "OR" ? -1 : 1
-      if (kb === "AND") return -1
-
-      return 0
-    })
-    const parsed = []
-
-    for (const key of orderedKeys) {
-      if (!/AND|OR|NOT/.test(key)) {
-        const [field, op, value] = this._parseTriple(
-          key,
-          input[key as keyof typeof input]!
-        )
-        if (typeof value === "object" && !Array.isArray(value))
-          throw new Error(`Invalid value for field ${field}`)
-
-        parsed.push([field, op, value] satisfies QueryTriple)
-      }
-      const value = (
-        Array.isArray(input[key as keyof typeof input])
-          ? input[key as keyof typeof input]
-          : [input[key as keyof typeof input]]
-      ) as Array<ModelQueryTriple>
-      const terms = value
-        .map(term => Object.entries(term).shift() || [])
-        .filter(([tk, tv]) => tk !== undefined && tv !== undefined)
-
-      switch (key) {
-        case "AND":
-          if (value.length < 2)
-            throw new Error("AND operator requires at least 2 terms")
-
-          terms.forEach(([tk, tv]) => parsed.push(this._parseTriple(tk, tv)))
-          break
-        case "OR":
-          if (value.length < 2)
-            throw new Error("OR operator requires at least 2 terms")
-
-          terms.forEach(([tk, tv], ti) => {
-            if (ti < value.length - 1) parsed.push("|")
-            parsed.push(this._parseTriple(tk, tv))
-          })
-          break
-        case "NOT":
-          terms.forEach(([tk, tv]) =>
-            parsed.push("!", this._parseTriple(tk, tv))
-          )
-      }
-    }
-
-    return parsed
-  }
-
-  // * return array of ids (ALL OF THEM, better to call with pagination)
   /**
    * Records can be listed and filtered via search()
-   * @param query
+   *
+   * WARNINGS:
+   * - returns an array of **every** record matching the query that can be a huge amount, consider call it with pagination
+   * @param query Optional, if omitted all records will be returned
    */
-  public async search(query?: Record<string, any>) {
-    // models.execute_kw(db, uid, password, 'res.partner', 'search', [
-    //   [
-    //     ['is_company', '=', true] // domain
-    //   ]
-    // ])
-    // models.execute_kw(db, uid, password, 'res.partner', 'search', [[['is_company', '=', True]]], {'offset': 10, 'limit': 5})
+  public async search(query?: ModelQueryInput, options?: ModelQueryOptions) {
+    const params: Array<any> = [
+      this._db,
+      this._uid,
+      this._password,
+      this.name,
+      "search",
+      [query ? QueryParser.parse(query) : []],
+    ]
+    if (options) params.push(options)
+
+    // TODO return Record, optionally raw
+    // TODO optionally populate records
+    return this._xmlrpc.object.call("execute_kw", params)
   }
 
-  // TODO
-  // * return number of records matching domain
-  public async search_count() {
-    // models.execute_kw(db, uid, password, 'res.partner', 'search_count', [
-    //   [
-    //     ['is_company', '=', true] // same domain
-    //   ]
-    // ])
+  /**
+   * Returns number of records matching `query`
+   * @param query Optional, if omitted the number of all records will be returned
+   */
+  public async searchCount(query?: ModelQueryInput) {
+    return this._xmlrpc.object.call("execute_kw", [
+      this._db,
+      this._uid,
+      this._password,
+      this.name,
+      "search_count",
+      [query ? QueryParser.parse(query) : []],
+    ])
   }
 
   // TODO (single per record, maybe new class, this can be bulkRead)
