@@ -87,7 +87,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
   ): Promise<RT> {
     if (!this._uid)
       throw new Error(
-        "You must call the connect method before accessing models' methods"
+        "You must call the connect method before accessing objects methods"
       )
 
     return this._xmlrpc.object.call(

@@ -19,23 +19,26 @@ export class AugmentedModel extends EndpointsCollector<["object"]> {
     super(host, port, secure, ["object"])
   }
 
+  private _isSimpleMatcherValue(
+    value: ModelQueryTripleValue | ModelQueryTriple | ModelQueryTriple[]
+  ): value is ModelQueryTripleValue {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    )
+      return true
+
+    const containsOp = (v: any) => Object.keys(v).some(k => k in Op)
+
+    return Array.isArray(value) ? !value.some(containsOp) : !containsOp(value)
+  }
+
   private _parseTriple(
     field: string,
-    matcher: ModelQueryTripleValue
+    matcher: ModelQueryTripleValue | ModelQueryTriple | ModelQueryTriple[]
   ): QueryTriple {
-    if (
-      typeof matcher === "string" ||
-      typeof matcher === "number" ||
-      typeof matcher === "boolean" ||
-      (typeof matcher === "object" &&
-        (matcher === null || Array.isArray(matcher)))
-    ) {
-      matcher = { EQUALS_TO: matcher }
-    } else {
-      const matcherKey = Object.keys(matcher).shift()
-      if (!matcherKey || !(matcherKey in Op))
-        throw new Error(`Invalid operator for field ${field}`)
-    }
+    if (this._isSimpleMatcherValue(matcher)) matcher = { EQUALS_TO: matcher }
 
     const [opName, value] = Object.entries(matcher).shift() as [
       keyof typeof Op,
@@ -46,9 +49,7 @@ export class AugmentedModel extends EndpointsCollector<["object"]> {
   }
 
   // TODO Can be moved in own abtract class (better)
-  public _parseQuery<T extends string>(
-    input: ModelQueryInput<T>
-  ): Array<string | QueryTriple> {
+  public _parseQuery(input: ModelQueryInput): Array<string | QueryTriple> {
     const orderedKeys = Object.keys(input).sort((ka, kb) => {
       if (ka === "NOT") return 1
       if (ka === "OR") return kb === "NOT" ? -1 : 1
@@ -60,9 +61,16 @@ export class AugmentedModel extends EndpointsCollector<["object"]> {
     const parsed = []
 
     for (const key of orderedKeys) {
-      if (!/AND|OR|NOT/.test(key))
-        parsed.push(this._parseTriple(key, input[key as keyof typeof input]!))
+      if (!/AND|OR|NOT/.test(key)) {
+        const [field, op, value] = this._parseTriple(
+          key,
+          input[key as keyof typeof input]!
+        )
+        if (typeof value === "object" && !Array.isArray(value))
+          throw new Error(`Invalid value for field ${field}`)
 
+        parsed.push([field, op, value] satisfies QueryTriple)
+      }
       const value = (
         Array.isArray(input[key as keyof typeof input])
           ? input[key as keyof typeof input]

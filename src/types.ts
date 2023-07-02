@@ -46,11 +46,16 @@ export type ModelQueryTripleValue =
 
 export type ModelQueryTriple = Record<string, ModelQueryTripleValue>
 
-// TODO FIXME properties not inferred
-export type ModelQueryInput<K extends keyof any> = {
-  [P in K]: P extends "AND" | "OR"
-    ? Array<ModelQueryTriple>
-    : P extends "NOT"
-    ? ModelQueryTriple | Array<ModelQueryTriple>
-    : ModelQueryTripleValue
+export interface ModelBaseQueryInput {
+  [k: string]:
+    | ModelQueryTripleValue
+    | ModelQueryTriple
+    | Array<ModelQueryTriple>
+    | undefined
+}
+
+export interface ModelQueryInput extends ModelBaseQueryInput {
+  AND?: Array<ModelQueryTriple>
+  OR?: Array<ModelQueryTriple>
+  NOT?: ModelQueryTriple | Array<ModelQueryTriple>
 }
