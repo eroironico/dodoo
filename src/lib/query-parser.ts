@@ -8,6 +8,8 @@ import {
 } from "../types"
 
 export default abstract class QueryParser {
+  public static Op = Op
+
   private static _isSimpleMatcherValue(
     value: ModelQueryTripleValue | ModelQueryTriple | ModelQueryTriple[]
   ): value is ModelQueryTripleValue {
