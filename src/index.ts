@@ -2,9 +2,11 @@ import Model from "./lib/model"
 import EndpointsCollector from "./lib/endpoints-collector"
 import { InternalConfig, Config, ServerVersion } from "./types"
 import QueryParser from "./lib/query-parser"
+import Command from "./lib/commands"
 
 class Odoo extends EndpointsCollector<["common", "object"]> {
   public static QueryParser = QueryParser
+  public static Command = Command
 
   private _db: string
   private _username: string
