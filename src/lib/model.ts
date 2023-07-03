@@ -52,7 +52,7 @@ export default class Model extends EndpointsCollector<["object"]> {
    * Returns number of records matching `query`
    * @param query Optional, if omitted the number of all records will be returned
    */
-  public async searchCount(query?: ModelQueryInput) {
+  public async searchCount(query?: ModelQueryInput): Promise<number> {
     return this._xmlrpc.object.call("execute_kw", [
       this._db,
       this._uid,
