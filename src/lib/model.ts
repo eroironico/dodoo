@@ -1,9 +1,13 @@
 import {
   Fields,
   Merge,
+  MinimalRecord,
   ModelQueryInput,
   ModelQueryOptions,
   ModelReadOptions,
+  ModelSearchCountInput,
+  ModelSearchInput,
+  ModelSearchReadInput,
 } from "../types"
 import EndpointsCollector from "./endpoints-collector"
 import QueryParser from "./query-parser"
@@ -33,28 +37,25 @@ export default class Model extends EndpointsCollector<["object"]> {
    *
    * WARNINGS:
    * - returns an array of **every** record matching the query that can be a huge amount, consider call it with pagination
-   * @param query Optional, if omitted all records will be returned
-   * @param options Optional, specify offset and limit for the query
+   * @param input Optional, if omitted all records will be returned
    */
-  public async search(
-    query?: ModelQueryInput,
-    options?: Partial<ModelQueryOptions>
-  ): Promise<Array<number>> {
-    const params: Array<any> = [[query ? QueryParser.parse(query) : []]]
-    if (options) params.push(options)
+  public async search(input?: ModelSearchInput): Promise<Array<number>> {
+    const { where: query, ...options } = input || {}
 
-    // TODO return Record, optionally raw
-    // TODO optionally populate records (internal call to searchRead)
+    const params: Array<any> = [[query ? QueryParser.parse(query) : []]]
+    if (Object.keys(options).length) params.push(options)
+
+    // TODO return Record[], optionally raw (now default)
     return this._execute("search", params)
   }
 
   /**
-   * Returns number of records matching `query`
-   * @param query Optional, if omitted the number of all records will be returned
+   * Returns number of records matching the query
+   * @param input Optional, if omitted the number of all records will be returned
    */
-  public async searchCount(query?: ModelQueryInput): Promise<number> {
+  public async searchCount(input?: ModelSearchCountInput): Promise<number> {
     return this._execute("search_count", [
-      [query ? QueryParser.parse(query) : []],
+      [input?.where ? QueryParser.parse(input.where) : []],
     ])
   }
 
@@ -67,7 +68,7 @@ export default class Model extends EndpointsCollector<["object"]> {
   public async read<F extends Fields>(
     ids: Array<number>,
     options?: ModelReadOptions<F>
-  ): Promise<Array<Merge<{ id: number }, Record<keyof F, any>>>> {
+  ): Promise<Array<Merge<MinimalRecord, Record<keyof F, any>>>> {
     const params: Array<any> = [[ids]]
     if (options) params.push({ fields: Object.keys(options.fields) })
 
@@ -80,12 +81,13 @@ export default class Model extends EndpointsCollector<["object"]> {
    * @param options Optional, specify offset, limit and which fields to read for this query
    */
   public async searchRead<F extends Fields>(
-    query?: ModelQueryInput,
-    options?: Partial<Merge<ModelQueryOptions, ModelReadOptions<F>>>
-  ): Promise<Array<Merge<{ id: number }, Record<keyof F, any>>>> {
+    input?: ModelSearchReadInput<F>
+  ): Promise<Array<Merge<MinimalRecord, Record<keyof F, any>>>> {
+    const { where: query, ...options } = input || {}
+
     const params: Array<any> = [[query ? QueryParser.parse(query) : []]]
-    if (options) {
-      if (!options.fields) params.push(options)
+    if (Object.keys(options).length) {
+      if (!("fields" in options) || !options.fields) params.push(options)
       else params.push({ ...options, fields: Object.keys(options.fields) })
     }
 

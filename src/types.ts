@@ -1,6 +1,8 @@
-import Op from "./lib/op"
+import QueryParser from "./lib/query-parser"
 
 export type Merge<A, B> = A & B
+
+// ==================== Odoo ====================
 
 export type Config = {
   url: URL | string
@@ -26,6 +28,10 @@ export type ServerVersion = {
   protocol_version: number
 }
 
+// ==================== Odoo ====================
+
+// ==================== Model ====================
+
 export type ModelQueryMatcherSimpleValue = string | number | boolean | null
 
 export type ModelQueryMatcherValue =
@@ -33,12 +39,12 @@ export type ModelQueryMatcherValue =
   | Array<string | number | boolean | Array<any>>
 
 export type ModelQueryMatcher = Partial<
-  Record<keyof typeof Op, ModelQueryMatcherValue>
+  Record<keyof typeof QueryParser.Op, ModelQueryMatcherValue>
 >
 
 export type QueryTriple = [
   field: string,
-  op: keyof typeof Op,
+  op: keyof typeof QueryParser.Op,
   value: ModelQueryMatcherValue
 ]
 
@@ -69,3 +75,21 @@ export type Fields = Record<string, true>
 export type ModelReadOptions<F extends Fields> = {
   fields: F
 }
+
+export type ModelSearchInput = {
+  where: ModelQueryInput
+} & Partial<ModelQueryOptions>
+
+export type ModelSearchCountInput = {
+  where: ModelQueryInput
+}
+
+export type ModelSearchReadInput<F extends Fields> = {
+  where: ModelQueryInput
+} & Partial<Merge<ModelQueryOptions, ModelReadOptions<F>>>
+
+// ==================== Model ====================
+
+// ==================== Record ====================
+
+export type MinimalRecord = { id: number }
