@@ -1,5 +1,7 @@
 import Op from "./lib/op"
 
+export type Merge<A, B> = A & B
+
 export type Config = {
   url: URL | string
   port?: number
@@ -60,4 +62,10 @@ export interface ModelQueryInput extends ModelBaseQueryInput {
   NOT?: ModelQueryTriple | Array<ModelQueryTriple>
 }
 
-export type ModelQueryOptions = Partial<{ offset: number; limit: number }>
+export type ModelQueryOptions = { offset: number; limit: number }
+
+export type Fields = Record<string, true>
+
+export type ModelReadOptions<F extends Fields> = {
+  fields: F
+}
