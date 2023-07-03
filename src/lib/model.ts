@@ -2,8 +2,6 @@ import {
   Fields,
   Merge,
   MinimalRecord,
-  ModelQueryInput,
-  ModelQueryOptions,
   ModelReadOptions,
   ModelSearchCountInput,
   ModelSearchInput,
@@ -11,6 +9,8 @@ import {
 } from "../types"
 import EndpointsCollector from "./endpoints-collector"
 import QueryParser from "./query-parser"
+
+// * https://www.odoo.com/documentation/16.0/developer/reference/backend/orm.html#common-orm-methods
 
 export default class Model extends EndpointsCollector<["object"]> {
   constructor(
