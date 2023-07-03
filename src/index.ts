@@ -85,18 +85,25 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
   public async executeKw<RT = any>(
     model: string,
     method: string,
-    params: Array<any> = []
+    params: Array<any>,
+    options?: Record<any, any>
   ): Promise<RT> {
     if (!this._uid)
       throw new Error(
         "You must call the connect method before accessing objects methods"
       )
 
-    return this._xmlrpc.object.call(
-      "execute_kw",
-      // ? .concat(params) should be .concat([params]) || it can be made better with .concat([params, options])
-      [this._db, this._uid, this._password, model, method].concat(params)
-    )
+    const baseParams: Array<any> = [
+      this._db,
+      this._uid,
+      this._password,
+      model,
+      method,
+    ]
+    baseParams.push(params)
+    if (options) baseParams.push(options)
+
+    return this._xmlrpc.object.call("execute_kw", baseParams)
   }
 
   /**
@@ -106,7 +113,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
    * - Since all models share and need the same `uid` you must call `authenticate` before any call to this method
    * - Models are cached so only the first call will return a new instance, other calls will return the same instance
    * @param name Odoo model name
-   * @returns A class augmenting `model` base methods
+   * @returns A class for accessing `model` base methods
    */
   public model(name: string): Model {
     if (!this._uid)
