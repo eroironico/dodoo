@@ -21,6 +21,13 @@ export default class Model extends EndpointsCollector<["object"]> {
     super(host, port, secure, ["object"])
   }
 
+  private async _execute(method: string, params: Array<any>) {
+    return this._xmlrpc.object.call(
+      "execute_kw",
+      [this._db, this._uid, this._password, this.name, method].concat(params)
+    )
+  }
+
   /**
    * Records can be listed and filtered via search()
    *
@@ -33,19 +40,12 @@ export default class Model extends EndpointsCollector<["object"]> {
     query?: ModelQueryInput,
     options?: Partial<ModelQueryOptions>
   ): Promise<Array<number>> {
-    const params: Array<any> = [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "search",
-      [query ? QueryParser.parse(query) : []],
-    ]
+    const params: Array<any> = [[query ? QueryParser.parse(query) : []]]
     if (options) params.push(options)
 
     // TODO return Record, optionally raw
     // TODO optionally populate records (internal call to searchRead)
-    return this._xmlrpc.object.call("execute_kw", params)
+    return this._execute("search", params)
   }
 
   /**
@@ -53,12 +53,7 @@ export default class Model extends EndpointsCollector<["object"]> {
    * @param query Optional, if omitted the number of all records will be returned
    */
   public async searchCount(query?: ModelQueryInput): Promise<number> {
-    return this._xmlrpc.object.call("execute_kw", [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "search_count",
+    return this._execute("search_count", [
       [query ? QueryParser.parse(query) : []],
     ])
   }
@@ -73,17 +68,10 @@ export default class Model extends EndpointsCollector<["object"]> {
     ids: Array<number>,
     options?: ModelReadOptions<F>
   ): Promise<Array<Merge<{ id: number }, Record<keyof F, any>>>> {
-    const params: Array<any> = [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "read",
-      [ids],
-    ]
+    const params: Array<any> = [[ids]]
     if (options) params.push({ fields: Object.keys(options.fields) })
 
-    return this._xmlrpc.object.call("execute_kw", params)
+    return this._execute("read", params)
   }
 
   /**
@@ -95,20 +83,13 @@ export default class Model extends EndpointsCollector<["object"]> {
     query?: ModelQueryInput,
     options?: Partial<Merge<ModelQueryOptions, ModelReadOptions<F>>>
   ): Promise<Array<Merge<{ id: number }, Record<keyof F, any>>>> {
-    const params: Array<any> = [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "search_read",
-      [query ? QueryParser.parse(query) : []],
-    ]
+    const params: Array<any> = [[query ? QueryParser.parse(query) : []]]
     if (options) {
       if (!options.fields) params.push(options)
       else params.push({ ...options, fields: Object.keys(options.fields) })
     }
 
-    return this._xmlrpc.object.call("execute_kw", params)
+    return this._execute("search_read", params)
   }
 
   // TODO implement Odoo.Command (for One2Many and Many2Many)
@@ -122,14 +103,7 @@ export default class Model extends EndpointsCollector<["object"]> {
    * @returns The id of the newly created record
    */
   public async create(payload: Record<string, any>): Promise<number> {
-    return this._xmlrpc.object.call("execute_kw", [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "create",
-      [payload],
-    ])
+    return this._execute("create", [[payload]])
   }
 
   // TODO (can be single per record, same as read, this can be bulkUpdate)
@@ -147,14 +121,7 @@ export default class Model extends EndpointsCollector<["object"]> {
     ids: Array<number>,
     payload: Record<string, any>
   ): Promise<boolean> {
-    return this._xmlrpc.object.call("execute_kw", [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "update",
-      [ids, payload],
-    ])
+    return this._execute("update", [[ids, payload]])
   }
 
   // TODO (again, can be single per record, this can be bulkDelete)
@@ -164,13 +131,6 @@ export default class Model extends EndpointsCollector<["object"]> {
    * @returns A boolean indicating whether the records have been deleted or not
    */
   public async delete(ids: Array<number>): Promise<boolean> {
-    return this._xmlrpc.object.call("execute_kw", [
-      this._db,
-      this._uid,
-      this._password,
-      this.name,
-      "unlink",
-      [ids],
-    ])
+    return this._execute("unlink", [[ids]])
   }
 }
