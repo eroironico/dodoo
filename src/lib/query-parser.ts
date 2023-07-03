@@ -77,7 +77,7 @@ export default abstract class QueryParser {
       ModelQueryMatcherValue
     ]
 
-    return [field, QueryParser.Op[opName as keyof typeof QueryParser.Op], value]
+    return [field, QueryParser.Op[opName], value]
   }
 
   /**

@@ -44,7 +44,7 @@ export type ModelQueryMatcher = Partial<
 
 export type QueryTriple = [
   field: string,
-  op: keyof typeof QueryParser.Op,
+  op: (typeof QueryParser.Op)[keyof typeof QueryParser.Op],
   value: ModelQueryMatcherValue
 ]
 
