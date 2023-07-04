@@ -18,7 +18,7 @@ export default class Model extends EndpointsCollector<["object"]> {
     port: number,
     secure: boolean,
     private _db: string,
-    private _uid: number,
+    private _uid: number | null,
     private _password: string,
     public name: string
   ) {
@@ -26,10 +26,18 @@ export default class Model extends EndpointsCollector<["object"]> {
   }
 
   private async _execute(method: string, params: Array<any>) {
+    if (!this._uid)
+      throw new Error("You must authenticate before calling objects methods")
+
     return this._xmlrpc.object.call(
       "execute_kw",
       [this._db, this._uid, this._password, this.name, method].concat(params)
     )
+  }
+
+  public setUID(uid: number): this {
+    this._uid = uid
+    return this
   }
 
   /**

@@ -76,9 +76,11 @@ const odoo = new Odoo({
 
   const moveId = await AccountMoveModel.create({
     // rest
-    invoice_line_ids: Odoo.Command.create({
-      // invoice line object
-    }),
+    invoice_line_ids: [
+      Odoo.Command.create({
+        // invoice line object
+      }),
+    ],
   })
 })()
 ```

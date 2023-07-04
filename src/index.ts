@@ -14,6 +14,11 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
   private _uid: number | null = null
   private _modelsCache: Map<string, Model> = new Map()
 
+  private set uid(uid: number) {
+    this._uid = uid
+    this._modelsCache.forEach(model => model.setUID(uid))
+  }
+
   /**
    * This is the config used internally (watchout as it exposes the password)
    */
@@ -69,7 +74,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
       ])
       if (!uid) throw new Error("No UID returned from authentication")
 
-      this._uid = uid
+      this.uid = uid
       return this._uid!
     } catch (e) {
       throw e
@@ -89,9 +94,7 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
     options?: Record<any, any>
   ): Promise<RT> {
     if (!this._uid)
-      throw new Error(
-        "You must call the connect method before accessing objects methods"
-      )
+      throw new Error("You must authenticate before accessing objects methods")
 
     const baseParams: Array<any> = [
       this._db,
@@ -110,17 +113,11 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
    * Call this method to get an instance of a single odoo model that implements the model base methods
    *
    * WARNINGS:
-   * - Since all models share and need the same `uid` you must call `authenticate` before any call to this method
    * - Models are cached so only the first call will return a new instance, other calls will return the same instance
    * @param name Odoo model name
    * @returns A class for accessing `model` base methods
    */
   public model(name: string): Model {
-    if (!this._uid)
-      throw new Error(
-        "You must authenticate before instantiating a model instance"
-      )
-
     if (!this._modelsCache.has(name))
       this._modelsCache.set(
         name,
