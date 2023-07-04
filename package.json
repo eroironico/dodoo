@@ -1,6 +1,6 @@
 {
   "name": "dodoo",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Node.js typesafe client for odoo ERP using xmlrpc api",
   "main": "dist/index.js",
   "scripts": {
