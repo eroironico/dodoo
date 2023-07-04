@@ -1,4 +1,4 @@
-# odoo-js-client
+# dodoo
 
 This package offers a painless implementation of odoo xmlrpc api in javascript
 
@@ -7,18 +7,18 @@ This package offers a painless implementation of odoo xmlrpc api in javascript
 Install the plugin from npm:
 
 ```sh
-npm install odoo-js-client
+npm install dodoo
 ```
 
 Then import the main class:
 
 ```js
 // with "esModuleInterop"
-import Odoo from "odoo-js-client"
+import Odoo from "dodoo"
 // or without
-import * as Odoo from "odoo-js-client"
+import * as Odoo from "dodoo"
 // or just
-const Odoo = require("odoo-js-client")
+const Odoo = require("dodoo")
 ```
 
 ## Usage
@@ -60,7 +60,7 @@ P.S.: if, when creating or updating records, you need to pass a value for a `One
 Full example:
 
 ```js
-import Odoo from "odoo-js-client"
+import Odoo from "dodoo"
 
 const odoo = new Odoo({
   url: process.env.ODOO_URL,
