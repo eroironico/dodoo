@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eroironico/odoo-js.git"
+    "url": "git+https://github.com/eroironico/dodoo.git"
   },
   "keywords": [
     "odoo",
@@ -20,9 +20,9 @@
   "author": "eroironico",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eroironico/odoo-js/issues"
+    "url": "https://github.com/eroironico/dodoo/issues"
   },
-  "homepage": "https://github.com/eroironico/odoo-js#readme",
+  "homepage": "https://github.com/eroironico/dodoo#readme",
   "files": [
     "dist/**/*"
   ],
