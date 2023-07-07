@@ -1,13 +1,20 @@
-import Model from "./lib/model"
-import EndpointsCollector from "./lib/endpoints-collector"
-import { InternalConfig, Config, ServerVersion } from "./types"
+import { InternalConfig, Config, ServerVersion, Model } from "./types"
 import QueryParser from "./lib/query-parser"
 import Command from "./lib/command"
+import XMLRPCClient from "./lib/xmlrpc-client"
+import modelGenerator from "./lib/model-generator"
 
-class Odoo extends EndpointsCollector<["common", "object"]> {
+class Odoo {
   public static QueryParser = QueryParser
   public static Command = Command
 
+  private _host: string
+  private _port: number
+  private _secure: boolean
+  private _xmlrpc: {
+    common: XMLRPCClient
+    object: XMLRPCClient
+  }
   private _db: string
   private _username: string
   private _password: string
@@ -41,11 +48,24 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
     const url =
       typeof config.url === "string" ? new URL(config.url) : config.url
 
-    const host = url.hostname,
-      secure = /https/.test(url.protocol),
-      port = config.port || Number(url.port) || (secure ? 443 : 80)
+    this._host = url.hostname
+    this._secure = /https/.test(url.protocol)
+    this._port = config.port || Number(url.port) || (this._secure ? 443 : 80)
 
-    super(host, port, secure, ["common", "object"])
+    this._xmlrpc = {
+      common: new XMLRPCClient(
+        this._host,
+        this._port,
+        this._secure,
+        "xmlrpc/2/common"
+      ),
+      object: new XMLRPCClient(
+        this._host,
+        this._port,
+        this._secure,
+        "xmlrpc/2/object"
+      ),
+    }
 
     this._db = config.db
     this._username = config.username
@@ -117,18 +137,18 @@ class Odoo extends EndpointsCollector<["common", "object"]> {
    * @param name Odoo model name
    * @returns A class for accessing `model` base methods
    */
-  public model(name: string): Model {
+  public model(name: string) {
     if (!this._modelsCache.has(name))
       this._modelsCache.set(
         name,
-        new Model(
+        modelGenerator(
+          name,
           this._host,
           this._port,
           this._secure,
           this._db,
           this._uid,
-          this._password,
-          name
+          this._password
         )
       )
 

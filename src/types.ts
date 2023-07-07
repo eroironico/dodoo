@@ -1,3 +1,4 @@
+import modelGenerator from "./lib/model-generator"
 import QueryParser from "./lib/query-parser"
 
 export type Merge<A, B> = A & B
@@ -31,6 +32,8 @@ export type ServerVersion = {
 // ==================== Odoo ====================
 
 // ==================== Model ====================
+
+export type Model = ReturnType<typeof modelGenerator>
 
 export type ModelQueryMatcherSimpleValue = string | number | boolean | null
 
