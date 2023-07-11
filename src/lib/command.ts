@@ -76,7 +76,7 @@ export default abstract class Command {
    *
    * Return the command triple
    */
-  public static set(ids: Array<number>) {
+  public static set(...ids: Array<number>) {
     return [Command.Type.SET, 0, ids] as const
   }
 }
