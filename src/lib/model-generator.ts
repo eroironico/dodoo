@@ -8,8 +8,6 @@ import {
 import QueryParser from "./query-parser"
 import XMLRPCClient from "./xmlrpc-client"
 
-// * https://www.odoo.com/documentation/16.0/developer/reference/backend/orm.html#common-orm-methods
-
 export default function modelGenerator(
   _name: string,
   _host: string,
@@ -19,6 +17,8 @@ export default function modelGenerator(
   _uid: number | null,
   _password: string
 ) {
+  const _deleteModelErrorMsg = `Model "${_name}" has been deleted and cannot be accessed`
+  const _notYetCreatedModelErrorMsg = `Model "${_name}" has not been created yet`
   const _xmlrpc = new XMLRPCClient(_host, _port, _secure, "xmlrpc/2/object")
 
   async function _execute(method: string, params: Array<any>) {
@@ -32,12 +32,49 @@ export default function modelGenerator(
   }
 
   return class Model {
-    constructor() {}
+    public __currentFields__: Record<string, any> = {}
+    public __previousFields__: Record<string, any> = {}
+    public __isDeleted___ = false
+
+    constructor(payload?: Record<string, any>) {
+      this.__currentFields__ = { ...payload }
+
+      return new Proxy(this, {
+        get(t, k) {
+          if (t.__isDeleted___) throw new Error(_deleteModelErrorMsg)
+          if (typeof k !== "string") return undefined
+
+          if (k in t) {
+            const value = t[k as keyof typeof t]
+            if (value instanceof Function)
+              return function (...args: any[]) {
+                value.apply(t, args)
+              }
+            else return value
+          }
+
+          return t.__currentFields__[k]
+        },
+        set(t, k, v) {
+          if (t.__isDeleted___) throw new Error(_deleteModelErrorMsg)
+          if (typeof k !== "string") return false
+
+          if (k in t) {
+            let value = t[k as keyof typeof t]
+            if (value instanceof Function) return false
+            value = v
+            return true
+          }
+
+          t.__currentFields__[k] = v
+          return true
+        },
+      })
+    }
 
     // ============================= STATIC =============================
     public static setUID(uid: number) {
       _uid = uid
-      return this
     }
 
     /**
@@ -122,7 +159,7 @@ export default function modelGenerator(
       id: number,
       payload: Record<string, any>
     ): Promise<boolean> {
-      return _execute("update", [[[id], payload]])
+      return _execute("write", [[[id], payload]])
     }
 
     /**
@@ -139,7 +176,7 @@ export default function modelGenerator(
       ids: Array<number>,
       payload: Record<string, any>
     ): Promise<boolean> {
-      return _execute("update", [[ids, payload]])
+      return _execute("write", [[ids, payload]])
     }
 
     /**
@@ -171,8 +208,197 @@ export default function modelGenerator(
     }
 
     // ============================ INSTANCE ============================
-    public async save() {
-      _xmlrpc.call("", [])
+    /**
+     * This method checks if a key (if passed) or the entire instance has changed since the first instantiation or the last `save` or `reload` call
+     * @param key Optional, is passed the return value will refers to the key
+     * @returns Whether `key` or the entire instance has changed or not
+     */
+    public hasChanged(key?: string) {
+      if (!key)
+        return Object.entries(this.__currentFields__).some(
+          ([k, v]) => this.__previousFields__[k] !== v
+        )
+
+      if (!Object.keys(this.__currentFields__).includes(key))
+        throw new Error(`Model "${_name}" has no key "${key}"`)
+      if (!Object.keys(this.__previousFields__).includes(key)) return true
+
+      const currentValue = this.__currentFields__[key]
+      const previousValue = this.__previousFields__[key]
+
+      if (
+        ["boolean", "number", "string", "undefined"].includes(
+          typeof currentValue
+        )
+      )
+        return currentValue !== previousValue
+      else if (currentValue === null) return previousValue !== null
+      else if (Array.isArray(currentValue))
+        return (
+          !Array.isArray(previousValue) ||
+          currentValue.some((v, i) => previousValue[i] !== v)
+        )
+      else
+        return Object.entries(currentValue).some(
+          ([k, v]) => previousValue[k] !== v
+        )
+    }
+
+    /**
+     * This is a helper method to decrement certain fields, it accepts a list of fields or a list of objects, each of which specifies a key and an amount.
+     *
+     * Example:
+     * ```js
+     * await myRecord.decrement("counter_1", { key: "counter_2", by: 2 })
+     * ```
+     * The above call will decrement `counter_1` by 1 and `counter_2` by 2
+     * @param keysMap The list of either keys or objects that specifies the behaviour of a single key
+     * @returns A boolean indicating whether the the instance has been updated or not
+     */
+    public async decrement(
+      ...keysMap: Array<string | { key: string; by: number }>
+    ): Promise<boolean> {
+      if (typeof this.__currentFields__.id !== "number")
+        throw new Error(`Model "${_name}" has not been created yet`)
+
+      const decrementPayload = Object.fromEntries(
+        keysMap.map(km =>
+          typeof km === "string"
+            ? [km, this.__currentFields__[km] - 1]
+            : [km.key, this.__currentFields__[km.key] - km.by]
+        )
+      )
+
+      return _execute("write", [
+        [[this.__currentFields__.id], decrementPayload],
+      ]).then(isUpdated => {
+        if (!isUpdated) return false
+
+        this.__currentFields__ = {
+          ...this.__currentFields__,
+          ...decrementPayload,
+        }
+        this.__previousFields__ = {
+          ...this.__previousFields__,
+          ...decrementPayload,
+        }
+
+        return true
+      })
+    }
+
+    /**
+     * This is a helper method to increment certain fields, it accepts a list of fields or a list of objects, each of which specifies a key and an amount.
+     *
+     * Example:
+     * ```js
+     * await myRecord.increment("counter_1", { key: "counter_2", by: 2 })
+     * ```
+     * The above call will increment `counter_1` by 1 and `counter_2` by 2
+     * @param keysMap The list of either keys or objects that specifies the behaviour of a single key
+     * @returns A boolean indicating whether the the instance has been updated or not
+     */
+    public async increment(
+      ...keysMap: Array<string | { key: string; by: number }>
+    ): Promise<boolean> {
+      if (typeof this.__currentFields__.id !== "number")
+        throw new Error(_notYetCreatedModelErrorMsg)
+
+      const incrementPayload = Object.fromEntries(
+        keysMap.map(km =>
+          typeof km === "string"
+            ? [km, this.__currentFields__[km] + 1]
+            : [km.key, this.__currentFields__[km.key] + km.by]
+        )
+      )
+
+      return _execute("write", [
+        [[this.__currentFields__.id], incrementPayload],
+      ]).then(isUpdated => {
+        if (!isUpdated) return false
+
+        this.__currentFields__ = {
+          ...this.__currentFields__,
+          ...incrementPayload,
+        }
+        this.__previousFields__ = {
+          ...this.__previousFields__,
+          ...incrementPayload,
+        }
+
+        return true
+      })
+    }
+
+    /**
+     * This method saves the current instance in the db. If it has an id it updates it, otherwise, it creates a new record and set the id
+     * @returns A number (id) if the instance has been created or a boolean if the instance has been updated
+     */
+    public async save(): Promise<number | boolean> {
+      if (!this.__currentFields__.id)
+        return _execute("create", [[this.__currentFields__]]).then(id => {
+          const newlyCreated = { id, ...this.__currentFields__ }
+          this.__currentFields__ = { ...newlyCreated }
+          this.__previousFields__ = { ...newlyCreated }
+
+          return id
+        })
+      else
+        return _execute("write", [
+          [
+            [this.__currentFields__.id],
+            Object.fromEntries(
+              Object.entries(this.__currentFields__).filter(([k]) => k !== "id")
+            ),
+          ],
+        ]).then(isUpdated => {
+          if (!isUpdated) return false
+
+          this.__previousFields__ = { ...this.__currentFields__ }
+
+          return true
+        })
+    }
+
+    /**
+     * This method pulls the latest values of the local fields (and, if present, of the additionalKeys) from the db and reset the instance with those values
+     * @param additionalKeys A list of keys to be pulled from odoo and added locally
+     */
+    public async reload(...additionalKeys: Array<string>): Promise<void> {
+      if (typeof this.__currentFields__.id !== "number")
+        throw new Error(_notYetCreatedModelErrorMsg)
+
+      return _execute("search_read", [
+        [QueryParser.parse({ id: this.__currentFields__.id })],
+        {
+          limit: 1,
+          fields: Object.keys(this.__previousFields__).concat(additionalKeys),
+        },
+      ]).then(([record]) => {
+        this.__previousFields__ = { ...record }
+        this.__currentFields__ = { ...record }
+      })
+    }
+
+    /**
+     * This method deletes the instance's corresponding record in the db
+     *
+     * WARNINGS:
+     * - After this method has been called you would not be able to call or access anything on this instance anymore
+     * @returns A boolean indicating whether the record has been deleted or not
+     */
+    public async delete(): Promise<boolean> {
+      if (typeof this.__currentFields__.id !== "number")
+        throw new Error(_notYetCreatedModelErrorMsg)
+
+      return _execute("unlink", [[[this.__currentFields__.id]]]).then(
+        isDeleted => {
+          if (!isDeleted) return false
+
+          this.__isDeleted___ = true
+          return true
+        }
+      )
     }
   }
 }
