@@ -149,7 +149,7 @@ class Odoo {
           this._db,
           this._uid,
           this._password
-        )
+        ) as any
       )
 
     return this._modelsCache.get(name)!
