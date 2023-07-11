@@ -180,7 +180,7 @@ export default function modelGenerator(
       ...keysMap: Array<string | { key: string; by: number }>
     ): Promise<boolean> {
       if (typeof this.__currentFields__.id !== "number")
-        throw new Error(`Model "${_name}" has not been created yet`)
+        throw new Error(_notYetCreatedModelErrorMsg)
 
       const decrementPayload = Object.fromEntries(
         keysMap.map(km =>
