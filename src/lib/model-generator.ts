@@ -332,16 +332,16 @@ export default function modelGenerator(
 
     /**
      * This method saves the current instance in the db. If it has an id it updates it, otherwise, it creates a new record and set the id
-     * @returns A number (id) if the instance has been created or a boolean if the instance has been updated
+     * @returns For convenience this method returns `this` in order to be able to call it right after the constructor and still having the instance
      */
-    public async save(): Promise<number | boolean> {
+    public async save(): Promise<this> {
       if (!this.__currentFields__.id)
         return _execute("create", [[this.__currentFields__]]).then(id => {
           const newlyCreated = { id, ...this.__currentFields__ }
           this.__currentFields__ = { ...newlyCreated }
           this.__previousFields__ = { ...newlyCreated }
 
-          return id
+          return this
         })
       else
         return _execute("write", [
@@ -352,11 +352,9 @@ export default function modelGenerator(
             ),
           ],
         ]).then(isUpdated => {
-          if (!isUpdated) return false
+          if (isUpdated) this.__previousFields__ = { ...this.__currentFields__ }
 
-          this.__previousFields__ = { ...this.__currentFields__ }
-
-          return true
+          return this
         })
     }
 
