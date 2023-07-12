@@ -205,13 +205,12 @@ export interface Model {
    * const ResPartner = odoo.model("res.partner")
    *
    * ;(async () => {
-   *     const partner = await ResPartner.findOne({ where: { id: 12 } })
-   *
-   *     if (partner) {
-   *         await ResPartner.update(partner.id, { name: "Jhon" })
-   *     } else {
-   *         record.id = await ResPartner.create({ name: "Jhon" })
-   *     }
+   *   const partner = await ResPartner.findOne({ where: { id: 12 } })
+   *   if (partner) {
+   *     await ResPartner.update(partner.id, { name: "Jhon" })
+   *   } else {
+   *     record.id = await ResPartner.create({ name: "Jhon" })
+   *   }
    * })()
    * ```
    * @param input The query that should return one or zero items
