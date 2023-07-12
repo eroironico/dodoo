@@ -2,7 +2,7 @@ import {
   Fields,
   Merge,
   MinimalRecord,
-  ModelSearchCountInput,
+  ModelSimpleSearchInput,
   ModelSearchReadInput,
 } from "../types"
 import QueryParser from "./query-parser"
@@ -130,7 +130,7 @@ export default function modelGenerator(
       return _execute("write", [[ids, payload]])
     }
 
-    public static async count(input?: ModelSearchCountInput): Promise<number> {
+    public static async count(input?: ModelSimpleSearchInput): Promise<number> {
       return _execute("search_count", [
         [input?.where ? QueryParser.parse(input.where) : []],
       ])
@@ -142,6 +142,41 @@ export default function modelGenerator(
 
     public static async deleteMany(ids: Array<number>): Promise<boolean> {
       return _execute("unlink", [[ids]])
+    }
+
+    public static async upsert(
+      input: ModelSimpleSearchInput,
+      payload: Record<string, any>
+    ): Promise<
+      { record: Record<string, any> } & (
+        | { created: true; updated: false }
+        | { created: false; updated: boolean }
+      )
+    > {
+      const record = await Model.findOne({
+        where: input.where,
+        fields: { id: true },
+      })
+
+      if (!record?.id) {
+        const id = await Model.create(payload)
+        return {
+          created: true,
+          updated: false,
+          record: {
+            id,
+            ...payload,
+          },
+        }
+      }
+
+      const updated = await Model.update(record.id, payload)
+
+      return {
+        created: false,
+        updated,
+        record: payload,
+      }
     }
 
     // ============================ INSTANCE ============================

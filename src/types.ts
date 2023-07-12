@@ -155,7 +155,7 @@ export interface Model {
    * - It is not possible to perform "computed" updates (where the value being set depends on an existing value of a record)
    * @param id The id of the record to update
    * @param payload The values to update
-   * @returns A boolean indicating whether the records have been deleted or not
+   * @returns A boolean indicating whether the records have been updated or not
    */
   update(id: number, payload: Record<string, any>): Promise<boolean>
 
@@ -167,7 +167,7 @@ export interface Model {
    * - It is not possible to perform "computed" updates (where the value being set depends on an existing value of a record)
    * @param ids An array of ids of records to update
    * @param payload The values to update
-   * @returns A boolean indicating whether the records have been deleted or not
+   * @returns A boolean indicating whether the records have been updated or not
    */
   updateMany(ids: Array<number>, payload: Record<string, any>): Promise<boolean>
 
@@ -175,7 +175,7 @@ export interface Model {
    * Returns number of records matching the query
    * @param input Optional, if omitted the number of all records will be returned
    */
-  count(input?: ModelSearchCountInput): Promise<number>
+  count(input?: ModelSimpleSearchInput): Promise<number>
 
   /**
    * A records can be deleted by providing its id
@@ -190,6 +190,42 @@ export interface Model {
    * @returns A boolean indicating whether the records have been deleted or not
    */
   deleteMany(ids: Array<number>): Promise<boolean>
+
+  /**
+   * This is a helper method that automatically runs a simple search and if a record that matches `input` is found then it updates it with `payload` values, otherwise it creates it
+   *
+   * For example, this:
+   * ```js
+   * const ResPartner = odoo.model("res.partner")
+   *
+   * ResPartner.upsert({ where: { id: 12 } }, { name: "Jhon" })
+   * ```
+   * Is the equivalent of:
+   * ```js
+   * const ResPartner = odoo.model("res.partner")
+   *
+   * ;(async () => {
+   *     const partner = await ResPartner.findOne({ where: { id: 12 } })
+   *
+   *     if (partner) {
+   *         await ResPartner.update(partner.id, { name: "Jhon" })
+   *     } else {
+   *         record.id = await ResPartner.create({ name: "Jhon" })
+   *     }
+   * })()
+   * ```
+   * @param input The query that should return one or zero items
+   * @param payload The values to create or update depending on the result of `query`
+   */
+  upsert(
+    input: ModelSimpleSearchInput,
+    payload: Record<string, any>
+  ): Promise<
+    { record: Record<string, any> } & (
+      | { created: true; updated: false }
+      | { created: false; updated: boolean }
+    )
+  >
 }
 
 export type ModelQueryMatcherSimpleValue = string | number | boolean | null
@@ -240,7 +276,7 @@ export type ModelSearchInput = {
   where: ModelQueryInput
 } & Partial<ModelQueryOptions>
 
-export type ModelSearchCountInput = {
+export type ModelSimpleSearchInput = {
   where: ModelQueryInput
 }
 
