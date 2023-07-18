@@ -175,7 +175,10 @@ export default function modelGenerator(
       return {
         created: false,
         updated,
-        record: payload,
+        record: {
+          id: record.id,
+          ...payload,
+        },
       }
     }
 
