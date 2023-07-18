@@ -48,7 +48,7 @@ export default function modelGenerator(
             const value = t[k as keyof typeof t]
             if (value instanceof Function)
               return function (...args: any[]) {
-                value.apply(t, args)
+                return value.apply(t, args)
               }
             else return value
           }
