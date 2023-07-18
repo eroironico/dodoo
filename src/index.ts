@@ -57,13 +57,13 @@ class Odoo {
         this._host,
         this._port,
         this._secure,
-        "xmlrpc/2/common"
+        "/xmlrpc/2/common"
       ),
       object: new XMLRPCClient(
         this._host,
         this._port,
         this._secure,
-        "xmlrpc/2/object"
+        "/xmlrpc/2/object"
       ),
     }
 

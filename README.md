@@ -64,7 +64,7 @@ const singlePartner = new ResPartner({ name: "Jhon" })
 // You can modify records directly
 singlePartner.email = "jhon@example.com"
 ;(async () => {
-  // call hasChanged to know if a certain field has been since the first instantiation or the last `save` or `reload` call
+  // call hasChanged to know if a certain field has been changed since the first instantiation or the last `save` or `reload` call
   if (singlePartner.hasChanged("email"))
     await singlePartner.save() // call save to sync local values on odoo
   else await singlePartner.reload() // or reload to discard them and pull the latest values from odoo

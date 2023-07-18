@@ -19,7 +19,7 @@ export default function modelGenerator(
 ) {
   const _deleteModelErrorMsg = `Model "${_name}" has been deleted and cannot be accessed`
   const _notYetCreatedModelErrorMsg = `Model "${_name}" has not been created yet`
-  const _xmlrpc = new XMLRPCClient(_host, _port, _secure, "xmlrpc/2/object")
+  const _xmlrpc = new XMLRPCClient(_host, _port, _secure, "/xmlrpc/2/object")
 
   async function _execute(method: string, params: Array<any>) {
     if (!_uid)
